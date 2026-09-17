@@ -1,0 +1,86 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test ./...
+      - run: go vet ./...
+      - run: go build ./...
+
+  release:
+    name: release
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Calculate next version
+        id: version
+        run: bash .github/scripts/release-version.sh
+      - name: Generate release notes
+        if: steps.version.outputs.has_release == 'true'
+        run: bash .github/scripts/release-notes.sh '${{ steps.version.outputs.previous }}'
+      - name: Build release artifacts
+        if: steps.version.outputs.has_release == 'true'
+        run: |
+          mkdir -p dist/linux-amd64 dist/windows-amd64
+          for cmd in lnproxy-client lnproxy-init lnproxy-node lnproxy-probe; do
+            go build -buildvcs=false -trimpath -o "dist/linux-amd64/$cmd" "./cmd/$cmd"
+            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -buildvcs=false -trimpath -o "dist/windows-amd64/$cmd.exe" "./cmd/$cmd"
+          done
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags=-H=windowsgui -o dist/windows-amd64/lnproxy-windows-server.exe ./cmd/lnproxy-windows-server
+          cp README.md README.zh-CN.md dist/
+          (cd dist && zip -qr amd64.zip linux-amd64 windows-amd64 README.md README.zh-CN.md)
+      - name: Publish GitHub release
+        if: steps.version.outputs.has_release == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            test "$(git rev-list -n 1 "$VERSION")" = "$GITHUB_SHA"
+          else
+            git tag -a "$VERSION" -m "$VERSION" "$GITHUB_SHA"
+            git push origin "$VERSION"
+          fi
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release edit "$VERSION" --title "$VERSION" --notes-file RELEASE_NOTES.md
+          else
+            gh release create "$VERSION" --verify-tag --title "$VERSION" --notes-file RELEASE_NOTES.md
+          fi
+          gh release upload "$VERSION" --clobber \
+            dist/linux-amd64/* \
+            dist/windows-amd64/* \
+            dist/amd64.zip \
+            dist/README.md \
+            dist/README.zh-CN.md

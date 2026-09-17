@@ -138,6 +138,14 @@ go vet ./...
 
 The full integration test binds loopback sockets. Environments that restrict socket creation must allow those operations.
 
+## CI and Releases
+
+GitHub Actions runs `verify` on every pull request. It runs `go test ./...`, `go vet ./...`, builds every package, and compiles Linux and Windows amd64 executables. The `verify` check is required before merging into `main`.
+
+Pushes to `main` use Conventional Commits to calculate the next SemVer tag. The first release is `v1.0.0`; `fix:` increments the patch version, `feat:` increments the minor version, and `!` or a `BREAKING CHANGE:` footer increments the major version. Pushes containing only `docs:`, `ci:`, `chore:`, or other non-releasable commits run verification but do not create a release.
+
+When a release is created, GitHub publishes both platform binary sets, `README.md`, `README.zh-CN.md`, and `amd64.zip`. Release publication can be retried manually with the `Release` workflow's `workflow_dispatch` action. Generated `dist/` output is not committed.
+
 ## Quick Start
 
 The following example uses `192.0.2.10` as the address reachable from both C and E.

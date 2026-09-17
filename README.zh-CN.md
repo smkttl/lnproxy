@@ -138,6 +138,14 @@ go vet ./...
 
 完整集成测试会绑定回环套接字。如果运行环境限制创建套接字，需要为该操作授权。
 
+## CI 和发布
+
+GitHub Actions 会在每个拉取请求上运行 `verify`：执行 `go test ./...`、`go vet ./...`、构建所有包，并编译 Linux 和 Windows amd64 可执行文件。合并到 `main` 前必须通过 `verify` 检查。
+
+推送到 `main` 后，系统根据 Conventional Commits 计算下一个 SemVer 标签。首个版本为 `v1.0.0`；`fix:` 增加补丁版本，`feat:` 增加次版本，`!` 或 `BREAKING CHANGE:` 页脚增加主版本。仅包含 `docs:`、`ci:`、`chore:` 等不可发布提交的推送仍会执行验证，但不会创建发布。
+
+创建发布时，GitHub 会附带两个平台的二进制文件、`README.md`、`README.zh-CN.md` 和 `amd64.zip`。可以手动运行 `Release` 工作流的 `workflow_dispatch` 重试发布。生成的 `dist/` 输出不会提交到 Git。
+
 ## 快速开始
 
 以下示例假设 C 和 E 都可以访问地址 `192.0.2.10`。
