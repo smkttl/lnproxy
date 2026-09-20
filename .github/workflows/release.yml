@@ -49,15 +49,7 @@ jobs:
         run: bash .github/scripts/release-notes.sh '${{ steps.version.outputs.previous }}'
       - name: Build release artifacts
         if: steps.version.outputs.has_release == 'true'
-        run: |
-          mkdir -p dist/linux-amd64 dist/windows-amd64
-          for cmd in lnproxy-client lnproxy-init lnproxy-node lnproxy-probe; do
-            go build -buildvcs=false -trimpath -o "dist/linux-amd64/$cmd" "./cmd/$cmd"
-            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -buildvcs=false -trimpath -o "dist/windows-amd64/$cmd.exe" "./cmd/$cmd"
-          done
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags=-H=windowsgui -o dist/windows-amd64/lnproxy-windows-server.exe ./cmd/lnproxy-windows-server
-          cp README.md README.zh-CN.md dist/
-          (cd dist && zip -qr amd64.zip linux-amd64 windows-amd64 README.md README.zh-CN.md)
+        run: bash .github/scripts/stage-release.sh '${{ steps.version.outputs.version }}'
       - name: Publish GitHub release
         if: steps.version.outputs.has_release == 'true'
         env:
@@ -78,9 +70,32 @@ jobs:
           else
             gh release create "$VERSION" --verify-tag --title "$VERSION" --notes-file RELEASE_NOTES.md
           fi
+
           gh release upload "$VERSION" --clobber \
-            dist/linux-amd64/* \
-            dist/windows-amd64/* \
-            dist/amd64.zip \
+            dist/assets/lnproxy-client-"${VERSION}" \
+            dist/assets/lnproxy-client-"${VERSION}".exe \
+            dist/assets/lnproxy-init-"${VERSION}" \
+            dist/assets/lnproxy-init-"${VERSION}".exe \
+            dist/assets/lnproxy-node-"${VERSION}" \
+            dist/assets/lnproxy-node-"${VERSION}".exe \
+            dist/assets/lnproxy-probe-"${VERSION}" \
+            dist/assets/lnproxy-probe-"${VERSION}".exe \
+            dist/assets/lnproxy-windows-server-"${VERSION}".exe \
+            "dist/lnproxy-${VERSION}-amd64.zip" \
             dist/README.md \
             dist/README.zh-CN.md
+
+          while IFS= read -r old_asset; do
+            case "$old_asset" in
+            "lnproxy-client-v${VERSION}" | "lnproxy-init-v${VERSION}" | \
+              "lnproxy-node-v${VERSION}" | "lnproxy-probe-v${VERSION}" | \
+              "lnproxy-windows-server-v${VERSION}.exe" | \
+              "lnproxy-${VERSION}-amd64.zip" | "README.md" | "README.zh-CN.md")
+              ;;
+            lnproxy-client | lnproxy-init | lnproxy-node | lnproxy-probe | \
+              lnproxy-client.exe | lnproxy-init.exe | lnproxy-node.exe | \
+              lnproxy-probe.exe | lnproxy-windows-server.exe | amd64.zip)
+              gh release delete-asset "$VERSION" "$old_asset" --yes
+              ;;
+            esac
+          done < <(gh release view "$VERSION" --json assets --jq '.assets[].name')

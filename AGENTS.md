@@ -27,7 +27,7 @@ Add focused unit tests beside implementation files. Changes to transport, authen
 
 Use Conventional Commits: `feat:`, `fix:`, `docs:`, `ci:`, `refactor:`, `test:`, or `chore:`. Add `!` or a `BREAKING CHANGE:` footer for incompatible changes. Pull requests must target `main`, describe behavior and validation, link relevant issues, and include screenshots only for user-visible interface changes.
 
-All pull requests require the `verify` check. After merge to `main`, releasable commits generate the next SemVer tag and GitHub Release. Non-releasable commits still run verification but do not release.
+All pull requests require the `verify` check. After merge to `main`, releasable commits generate the next SemVer tag and GitHub Release. Non-releasable commits still run verification but do not release. Release binaries and the combined archive include the version; release-copy README H1 headings also include it, but source README headings remain unversioned.
 
 ## Security & Configuration
 
