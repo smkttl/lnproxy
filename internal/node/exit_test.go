@@ -1,14 +1,38 @@
 package node
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"log/slog"
+	"strings"
 	"testing"
 
 	"lnproxy/internal/config"
 	"lnproxy/internal/transport"
 )
+
+func TestExitRunRejectsInvalidServerAddress(t *testing.T) {
+	tests := []struct {
+		name    string
+		address string
+		want    string
+	}{
+		{name: "missing", want: "server address is required"},
+		{name: "malformed", address: "host:port:extra", want: `invalid server address "host:port:extra"`},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			exit := NewExit(config.Node{ServerAddress: test.address}, "passphrase", nil, slog.Default())
+			err := exit.Run(context.Background())
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("Run() error = %v, want error containing %q", err, test.want)
+			}
+		})
+	}
+}
 
 func TestExitTrustFailureIsPermanent(t *testing.T) {
 	config := transport.ClientTLSConfig("", untrustedExitStore{}, "server.example")

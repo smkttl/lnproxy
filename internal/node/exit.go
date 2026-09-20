@@ -50,9 +50,14 @@ func NewExit(cfg config.Node, passphrase string, tlsConfig *tls.Config, logger *
 }
 
 func (e *Exit) Run(ctx context.Context) error {
+	address, err := config.NormalizeServerAddress(e.config.ServerAddress)
+	if err != nil {
+		return err
+	}
+
 	delay := time.Second
 	for {
-		err := e.connectOnce(ctx)
+		err := e.connectOnce(ctx, address)
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -73,11 +78,7 @@ func (e *Exit) Run(ctx context.Context) error {
 	}
 }
 
-func (e *Exit) connectOnce(ctx context.Context) error {
-	address, err := config.NormalizeServerAddress(e.config.ServerAddress)
-	if err != nil {
-		return err
-	}
+func (e *Exit) connectOnce(ctx context.Context, address string) error {
 	host := addressHost(address)
 	expected, trust := e.trustConfig(host)
 	tlsConfig := transport.ClientTLSConfig(expected, trust, host)
