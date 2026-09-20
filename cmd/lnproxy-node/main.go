@@ -107,6 +107,12 @@ func run() error {
 		return initnode.Initialize(cfg, opts.configPath)
 	}
 	if cfg.Role == config.RoleExit {
+		address, err := config.NormalizeServerAddress(cfg.ServerAddress)
+		if err != nil {
+			return fmt.Errorf("exit mode: %w", err)
+		}
+		cfg.ServerAddress = address
+
 		passphrase, err := auth.ResolvePassphrase(cfg.PassphraseSource)
 		if err != nil {
 			return err
