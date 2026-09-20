@@ -26,15 +26,7 @@ jobs:
       - name: Build all packages
         run: go build ./...
       - name: Build release artifacts
-        run: |
-          mkdir -p dist/linux-amd64 dist/windows-amd64
-          for cmd in lnproxy-client lnproxy-init lnproxy-node lnproxy-probe; do
-            go build -buildvcs=false -trimpath -o "dist/linux-amd64/$cmd" "./cmd/$cmd"
-            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -buildvcs=false -trimpath -o "dist/windows-amd64/$cmd.exe" "./cmd/$cmd"
-          done
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags=-H=windowsgui -o dist/windows-amd64/lnproxy-windows-server.exe ./cmd/lnproxy-windows-server
-          cp README.md README.zh-CN.md dist/
-          (cd dist && zip -qr amd64.zip linux-amd64 windows-amd64 README.md README.zh-CN.md)
+        run: bash .github/scripts/stage-release.sh v1.0.0
       - uses: actions/upload-artifact@v4
         with:
           name: lnproxy-pr-${{ github.sha }}
