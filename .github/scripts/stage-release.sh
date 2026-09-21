@@ -9,7 +9,8 @@ rm -rf "$dist"
 mkdir -p "$dist/linux-amd64" "$dist/windows-amd64" "$dist/assets"
 
 for cmd in "${commands[@]}"; do
-	go build -buildvcs=false -trimpath -o "$dist/linux-amd64/$cmd" "./cmd/$cmd"
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+		go build -buildvcs=false -trimpath -o "$dist/linux-amd64/$cmd" "./cmd/$cmd"
 	GOOS=windows GOARCH=amd64 CGO_ENABLED=0 \
 		go build -buildvcs=false -trimpath -o "$dist/windows-amd64/$cmd.exe" "./cmd/$cmd"
 

@@ -140,11 +140,11 @@ The full integration test binds loopback sockets. Environments that restrict soc
 
 ## CI and Releases
 
-GitHub Actions runs `verify` on every pull request. It runs `go test ./...`, `go vet ./...`, builds every package, and compiles Linux and Windows amd64 executables. The `verify` check is required before merging into `main`.
+GitHub Actions runs `verify` on every pull request. It runs `go test ./...`, `go vet ./...`, builds every package, and compiles Linux and Windows amd64 executables. The Linux release build uses `CGO_ENABLED=0` so the published binaries are static and do not depend on the runner's glibc. The `verify` check is required before merging into `main`.
 
 Pushes to `main` use Conventional Commits to calculate the next SemVer tag. The first release is `v1.0.0`; `fix:` increments the patch version, `feat:` increments the minor version, and `!` or a `BREAKING CHANGE:` footer increments the major version. Pushes containing only `docs:`, `ci:`, `chore:`, or other non-releasable commits run verification but do not create a release.
 
-When a release is created, GitHub publishes versioned Linux and Windows binaries named like `lnproxy-node-v1.0.0` and `lnproxy-node-v1.0.0.exe`. The combined archive is `lnproxy-v1.0.0-amd64.zip`, while `README.md` and `README.zh-CN.md` keep stable asset names and have their H1 headings rendered with the release version. Release publication can be retried manually with the `Release` workflow's `workflow_dispatch` action. Generated `dist/` output is not committed.
+When a release is created, GitHub publishes versioned Linux and Windows binaries named like `lnproxy-node-v1.0.0` and `lnproxy-node-v1.0.0.exe`. The combined archive is `lnproxy-v1.0.0-amd64.zip`, while `README.md` and `README.zh-CN.md` keep stable asset names and have their H1 headings rendered with the release version. The release pipeline verifies that Linux artifacts are statically linked and smoke-tests them in Ubuntu 20.04 before publication. Release publication can be retried manually with the `Release` workflow's `workflow_dispatch` action. Generated `dist/` output is not committed.
 
 ## Quick Start
 
