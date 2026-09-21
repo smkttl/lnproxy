@@ -50,6 +50,12 @@ jobs:
       - name: Build release artifacts
         if: steps.version.outputs.has_release == 'true'
         run: bash .github/scripts/stage-release.sh '${{ steps.version.outputs.version }}'
+      - name: Verify release artifacts
+        if: steps.version.outputs.has_release == 'true'
+        run: bash .github/scripts/verify-release-artifacts.sh
+      - name: Smoke test Linux release artifacts
+        if: steps.version.outputs.has_release == 'true'
+        run: bash .github/scripts/smoke-test-linux.sh
       - name: Publish GitHub release
         if: steps.version.outputs.has_release == 'true'
         env:
